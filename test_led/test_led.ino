@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #define led_pin 7
 void setup() {
     pinMode(led_pin, OUTPUT);

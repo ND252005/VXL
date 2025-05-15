@@ -1,0 +1,291 @@
+A51 MACRO ASSEMBLER  LCD_DISPLAY_BY_UART                                                  05/15/2025 20:38:46 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.2.7.0
+OBJECT MODULE PLACED IN .\Objects\lcd_display_by_uart.obj
+ASSEMBLER INVOKED BY: C:\Keil_v5\C51\BIN\A51.EXE lcd_display_by_uart.a51 SET(SMALL) DEBUG PRINT(.\Listings\lcd_display_b
+                      y_uart.lst) OBJECT(.\Objects\lcd_display_by_uart.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     ;Define const and variable
+  0020                 2     BUFFER_SIZE equ 32
+  0030                 3     BUFFER_ADDR equ 30H  ; Ðia chi bat dau trong ram noi
+                       4     
+                       5     ; Ðinh nghia segment du lieu trong RAM noi (bat dau tu 30H)
+----                   6     DSEG AT 30H
+0030                   7     buffer: DS BUFFER_SIZE
+0050                   8     index: DS 1
+----                   9     CSEG
+0000                  10     ORG 0000H
+0000 0200E9           11     LJMP main
+  0090                12     RS_pin BIT 90H  ; P1.0
+  0091                13     RW_pin BIT 91H  ; P1.1
+  0092                14     EN_pin BIT 92H  ; P1.2
+  0084                15     D4_pin BIT 84H  ; P0.4
+  0085                16     D5_pin BIT 85H  ; P0.5
+  0086                17     D6_pin BIT 86H  ; P0.6
+  0087                18     D7_pin BIT 87H  ; P0.7  
+                      19     ; data  =   R5
+                      20     ; time  =   R7
+                      21     
+                      22     ;use r6, r7 for delay time
+                      23     ;DELAY MICRO SECOND 
+                      24     
+0003                  25     Delay_us:
+0003 DFFE             26         DJNZ R7, Delay_us
+0005 22               27         RET 
+                      28     ;DELAY MILLIS SECOND
+0006                  29     Delay_ms:
+0006 7E55             30         mov r6, #55H
+0008                  31     Delay_ms1:
+0008 DEFE             32         DJNZ R6, Delay_ms1
+000A DFFA             33         DJNZ R7, Delay_ms
+000C 22               34         RET
+                      35     
+                      36     ;=====GIAO TIEP VOI 1602 4 BIT===== 
+000D                  37     LCD_enable:
+000D D292             38         SETB EN_pin 
+000F 7F03             39         MOV R7, #3
+0011 120003           40         LCALL Delay_us
+0014 C292             41         CLR EN_pin
+0016 7F32             42         MOV R7, #50
+0018 120003           43         LCALL Delay_us
+001B 22               44         RET
+                      45     
+                      46     ;use r5 for data 
+001C                  47     LCD_send4bit:
+                      48         ; D4_pin = R5.0
+001C ED               49         MOV A, R5
+001D 5401             50         ANL A, #01H
+001F A2E0             51         MOV C, ACC.0
+0021 9284             52         MOV D4_pin, C
+                      53         
+                      54         ; D5_pin = R5.1
+0023 ED               55         MOV A, R5
+0024 03               56         RR A
+0025 5401             57         ANL A, #01H
+A51 MACRO ASSEMBLER  LCD_DISPLAY_BY_UART                                                  05/15/2025 20:38:46 PAGE     2
+
+0027 A2E0             58         MOV C, ACC.0
+0029 9285             59         MOV D5_pin, C
+                      60         
+                      61         ; D6_pin = R5.2
+002B ED               62         MOV A, R5
+002C 03               63         RR A
+002D 03               64         RR A
+002E 5401             65         ANL A, #01H
+0030 A2E0             66         MOV C, ACC.0
+0032 9286             67         MOV D6_pin, C
+                      68         
+                      69         ; D7_pin = R5.3
+0034 ED               70         MOV A, R5
+0035 03               71         RR A
+0036 03               72         RR A
+0037 03               73         RR A
+0038 5401             74         ANL A, #01H
+003A A2E0             75         MOV C, ACC.0
+003C 9287             76         MOV D7_pin, C
+                      77         
+003E 22               78         RET
+                      79     ;use r5 luu data truoc khi su dung lenh lcd_sendcommand
+003F                  80     LCD_sendcommand:
+                      81         ;DICH PHAI 4 BIT
+003F ED               82         MOV A, R5
+0040 FC               83             MOV R4, A
+0041 03               84         RR A
+0042 03               85         RR A
+0043 03               86         RR A
+0044 03               87         RR A
+0045 FD               88         MOV R5, A
+0046 12001C           89         LCALL LCD_send4bit
+0049 12000D           90         LCALL LCD_enable
+004C EC               91             MOV A, R4
+004D FD               92             MOV R5, A 
+004E 12001C           93         LCALL LCD_send4bit
+0051 12000D           94         LCALL LCD_enable
+0054 22               95         RET
+                      96     ;CLEAR MONITOR 
+0055                  97     LCD_clear:
+0055 7D01             98         MOV R5, #01H
+0057 12003F           99         LCALL LCD_sendcommand
+005A 7F0A            100         MOV R7, #10
+005C 120003          101         LCALL Delay_us
+005F 22              102         RET
+                     103     ;KHOI TAO LCD
+0060                 104     LCD_init:
+0060 7D00            105         MOV R5, #00H
+0062 7F14            106         MOV R7, #20
+0064 120006          107         LCALL Delay_ms 
+0067 C290            108         CLR RS_pin
+0069 C291            109         CLR RW_pin
+006B 7D03            110         MOV R5, #03H
+006D 12001C          111         LCALL LCD_send4bit
+0070 12000D          112         LCALL LCD_enable
+0073 7F05            113         MOV R7, #5
+0075 120006          114         LCALL Delay_ms
+0078 12000D          115         LCALL LCD_enable
+007B 7F64            116         MOV R7, #100
+007D 120003          117         LCALL Delay_us 
+0080 12000D          118         LCALL LCD_enable
+0083 7D02            119         MOV R5, #02H 
+0085 12001C          120         LCALL LCD_send4bit
+0088 12000D          121         LCALL LCD_enable
+008B 7D28            122         MOV R5, #28H
+008D 12003F          123         LCALL LCD_sendcommand
+A51 MACRO ASSEMBLER  LCD_DISPLAY_BY_UART                                                  05/15/2025 20:38:46 PAGE     3
+
+0090 7D0C            124         MOV R5, #0CH
+0092 12003F          125         LCALL LCD_sendcommand
+0095 7D06            126         MOV R5, #06H
+0097 12003F          127         LCALL LCD_sendcommand
+009A 7D01            128         MOV R5, #01H
+009C 12003F          129         LCALL LCD_sendcommand
+009F 22              130         RET
+                     131     ; r2 = x, r3 = y
+00A0                 132     LCD_goto:
+00A0 BB3005          133         CJNE R3, #'0', DONG_1
+                     134     ;DONG 0
+00A3 7480            135         MOV A, #80H
+00A5 2B              136         ADD A, R3
+00A6 8003            137         SJMP SEND_GOTO
+00A8                 138     DONG_1:
+00A8 74C0            139         MOV A, #0C0H 
+00AA 2B              140         ADD A, R3
+00AB                 141     SEND_GOTO:
+00AB 7FFA            142         MOV R7, #250
+00AD 120003          143         LCALL Delay_us
+00B0 7FFA            144         MOV R7, #250
+00B2 120003          145         LCALL Delay_us
+00B5 7FFA            146         MOV R7, #250
+00B7 120003          147         LCALL Delay_us
+00BA 7FFA            148         MOV R7, #250
+00BC 120003          149         LCALL Delay_us
+00BF FD              150         MOV R5, A
+00C0 12003F          151         LCALL LCD_sendcommand
+00C3 7F32            152         MOV R7, #50
+00C5 120003          153         LCALL Delay_us
+00C8 22              154         RET
+                     155     
+00C9                 156     LCD_putchar:
+00C9 D290            157         SETB RS_pin
+00CB 12003F          158         LCALL LCD_sendcommand 
+00CE C290            159         CLR RS_pin
+00D0 22              160         RET
+                     161     
+00D1                 162     LCD_putstring: 
+00D1 E6              163         MOV A, @R0          ; Lay k tu cua dia chi R0
+00D2 6005            164         JZ Send_End         ; Neu k tu la '\0', ket thuc
+00D4 11C9            165         ACALL LCD_putchar
+00D6 08              166         INC R0              ; Tang con tro
+00D7 80F8            167         SJMP LCD_putstring
+00D9                 168     Send_End:
+00D9 22              169         RET
+                     170     
+                     171     ;UART BLOCK
+00DA                 172     UART_Init:
+00DA 438920          173         ORL TMOD,   #20H    ; Timer1 mode 2 (8-bit auto-reload)
+00DD 758DFD          174         MOV TH1,    #0FDH   ; Giá tri TH1 cho speed baud 9600 voi 11.0592MHz
+00E0 758BFD          175         MOV TL1,    #0FDH   ; gia tri cho thanh ghi TL1
+00E3 759850          176         MOV SCON,   #50H    ; UART mode 1, nhan du lieu (REN = 1)
+00E6 D28E            177         SETB TR1            ; Bat Timer1
+00E8 22              178         RET
+                     179     
+                     180     ;CHUONG TRINH CHINH 
+00E9                 181     main:
+00E9 11DA            182         ACALL UART_Init     ; khoi tao UART
+00EB                 183     Main_loop:
+00EB 3098FD          184         JNB RI, Main_loop   ; Check flag RI = 1 (flag receive)
+00EE E599            185         MOV A, SBUF
+00F0 C298            186         CLR RI              ; Reset flag RI
+00F2 B40A14          187         CJNE A, #0AH, NOT_NEWLINE ; neu khong phai '\n', xu ly tiep not newline
+                     188         ; Khi nh?n '\n'
+00F5 E550            189         MOV A, index
+A51 MACRO ASSEMBLER  LCD_DISPLAY_BY_UART                                                  05/15/2025 20:38:46 PAGE     4
+
+00F7 7830            190         MOV R0, #BUFFER_ADDR
+00F9 28              191         ADD A, R0
+00FA F8              192         MOV R0, A
+00FB 7600            193         MOV @R0, #0         ; Thêm k tu null ('\0') vào cuoi buffer
+00FD 7830            194         MOV R0, #BUFFER_ADDR
+00FF 1200D1          195         LCALL LCD_putstring
+0102 755000          196         MOV index, #0       ; Reset index
+0105 311F            197         ACALL CLR_CPY
+0107 80E2            198         SJMP Main_loop
+0109                 199     NOT_NEWLINE:
+0109 E550            200         MOV A, index
+010B B41F02          201         CJNE A, #BUFFER_SIZE-1, Add_Char ; N?u buffer day, bo qua
+010E 80DB            202         SJMP Main_loop
+0110                 203     Add_Char:
+0110 7830            204         MOV R0, #BUFFER_ADDR
+0112 E550            205         MOV A, index
+0114 28              206         ADD A, R0
+0115 F8              207         MOV R0, A
+0116 E599            208         MOV A, SBUF         ; Luu ky tu nhan duoc
+0118 F6              209         MOV @R0, A          ; Luu k tu vào buffer[index]
+0119 0550            210         INC index           ; Tang index
+011B C298            211         CLR RI
+011D 80CC            212         SJMP Main_loop
+011F                 213     CLR_CPY:
+011F 7830            214         MOV R0, #BUFFER_ADDR
+0121 7920            215         MOV R1, #BUFFER_SIZE
+0123                 216     CLR_LOOP:
+0123 7600            217         MOV @R0, #0
+0125 08              218         INC R0
+0126 D9FB            219         DJNZ R1, CLR_LOOP
+0128 22              220         RET
+                     221     END
+A51 MACRO ASSEMBLER  LCD_DISPLAY_BY_UART                                                  05/15/2025 20:38:46 PAGE     5
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+ACC. . . . . . . .  D ADDR   00E0H   A   
+ADD_CHAR . . . . .  C ADDR   0110H   A   
+BUFFER . . . . . .  D ADDR   0030H   A   
+BUFFER_ADDR. . . .  N NUMB   0030H   A   
+BUFFER_SIZE. . . .  N NUMB   0020H   A   
+CLR_CPY. . . . . .  C ADDR   011FH   A   
+CLR_LOOP . . . . .  C ADDR   0123H   A   
+D4_PIN . . . . . .  B ADDR   0080H.4 A   
+D5_PIN . . . . . .  B ADDR   0080H.5 A   
+D6_PIN . . . . . .  B ADDR   0080H.6 A   
+D7_PIN . . . . . .  B ADDR   0080H.7 A   
+DELAY_MS . . . . .  C ADDR   0006H   A   
+DELAY_MS1. . . . .  C ADDR   0008H   A   
+DELAY_US . . . . .  C ADDR   0003H   A   
+DONG_1 . . . . . .  C ADDR   00A8H   A   
+EN_PIN . . . . . .  B ADDR   0090H.2 A   
+INDEX. . . . . . .  D ADDR   0050H   A   
+LCD_CLEAR. . . . .  C ADDR   0055H   A   
+LCD_ENABLE . . . .  C ADDR   000DH   A   
+LCD_GOTO . . . . .  C ADDR   00A0H   A   
+LCD_INIT . . . . .  C ADDR   0060H   A   
+LCD_PUTCHAR. . . .  C ADDR   00C9H   A   
+LCD_PUTSTRING. . .  C ADDR   00D1H   A   
+LCD_SEND4BIT . . .  C ADDR   001CH   A   
+LCD_SENDCOMMAND. .  C ADDR   003FH   A   
+MAIN . . . . . . .  C ADDR   00E9H   A   
+MAIN_LOOP. . . . .  C ADDR   00EBH   A   
+NOT_NEWLINE. . . .  C ADDR   0109H   A   
+RI . . . . . . . .  B ADDR   0098H.0 A   
+RS_PIN . . . . . .  B ADDR   0090H.0 A   
+RW_PIN . . . . . .  B ADDR   0090H.1 A   
+SBUF . . . . . . .  D ADDR   0099H   A   
+SCON . . . . . . .  D ADDR   0098H   A   
+SEND_END . . . . .  C ADDR   00D9H   A   
+SEND_GOTO. . . . .  C ADDR   00ABH   A   
+TH1. . . . . . . .  D ADDR   008DH   A   
+TL1. . . . . . . .  D ADDR   008BH   A   
+TMOD . . . . . . .  D ADDR   0089H   A   
+TR1. . . . . . . .  B ADDR   0088H.6 A   
+UART_INIT. . . . .  C ADDR   00DAH   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)

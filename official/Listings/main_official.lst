@@ -1,0 +1,157 @@
+A51 MACRO ASSEMBLER  MAIN_OFFICIAL                                                        05/15/2025 14:35:03 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.2.7.0
+OBJECT MODULE PLACED IN .\Objects\main_official.obj
+ASSEMBLER INVOKED BY: C:\Keil_v5\C51\BIN\A51.EXE main_official.a51 SET(SMALL) DEBUG PRINT(.\Listings\main_official.lst) 
+                      OBJECT(.\Objects\main_official.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     ; Ð?nh nghia hang  và bien
+  0020                 2     BUFFER_SIZE equ 32
+  0030                 3     BUFFER_ADDR equ 30H  ; Ðia chi bat dau trong ram noi
+                       4     
+                       5     ; Ðinh nghia segment du lieu trong RAM noi (bat dau tu 30H)
+----                   6     DSEG AT 30H
+0030                   7     buffer: DS BUFFER_SIZE
+0050                   8     index: DS 1
+                       9     
+                      10     
+                      11     ;===========CODE SEGMENT==========
+----                  12     CSEG
+0000                  13     ORG 0000H
+0000 8037             14     SJMP main
+                      15     
+                      16     ; Hàm khoi tao UART
+0002                  17     UART_init:
+0002 438920           18         ORL TMOD,   #20H    ; Timer1 mode 2 (8-bit auto-reload)
+0005 758DFD           19         MOV TH1,    #0FDH   ; Giá tri TH1 cho speed baud 9600 voi 11.0592MHz
+0008 758BFD           20         MOV TL1,    #0FDH   ; gia tri cho thanh ghi TL1
+000B 759850           21         MOV SCON,   #50H    ; UART mode 1, nhan du lieu (REN = 1)
+000E D28E             22         SETB TR1            ; Bat Timer1
+0010 22               23         RET
+                      24     
+                      25     ; Hàm gui mot ky tu qua UART
+0011                  26     UART_Sendchar:
+0011 F599             27         MOV SBUF, A         ; Gui ký tu cua A vào SBUF
+0013                  28     WAIT_TI:
+0013 3099FD           29         JNB TI, WAIT_TI     ; wait flag TI = 1 (truyen xong)
+0016 C299             30         CLR TI              ; Reset flag TI
+0018 22               31         RET
+                      32     
+                      33     ; Hàm gui mot chuoi ky tu qua UART
+0019                  34     UART_Sendstring:
+0019                  35     Send_loop:
+0019 E6               36         MOV A, @R0          ; Lay ký tu cua dia chi R0
+001A 6005             37         JZ Send_End         ; Neu ký tu la '\0', ket thuc
+001C 1111             38         ACALL UART_Sendchar ; gui ký tu
+001E 08               39         INC R0              ; Tang con tro
+001F 80F8             40         SJMP Send_loop
+0021                  41     Send_End:
+0021 22               42         RET
+                      43     
+                      44     ; Hàm xu ly lenh
+0022                  45     Process_command:
+0022 E550             46         MOV A, index
+0024 6012             47         JZ End_Process      ; N?u index = 0, không x? lý
+0026 E530             48         MOV A, buffer       ; Lay ký tu dau tien
+0028 B44B0D           49         CJNE A, #'K', End_Process ; Neu không phai 'K', bo qua
+002B 7930             50         MOV R1, #BUFFER_ADDR
+002D 09               51         INC R1 
+002E E7               52         MOV A, @R1     ; L?y ký t? th? hai
+002F B43104           53         CJNE A, #'1', CHECK_0
+0032 C2A0             54         CLR P2.0            ; N?u 'K1', on LED (P2_0 = 0)
+0034 8002             55         SJMP End_Process
+0036                  56     CHECK_0:
+0036 D2A0             57         SETB P2.0           ; Neu 'K0', off LED (P2_0 = 1)
+A51 MACRO ASSEMBLER  MAIN_OFFICIAL                                                        05/15/2025 14:35:03 PAGE     2
+
+0038                  58     End_Process:
+0038 22               59         RET
+                      60     
+                      61     ; Chuong trình chính
+0039                  62     main:
+0039 1102             63         ACALL UART_init     ; khoi tao UART
+003B                  64     MAIN_LOOP:
+003B 3098FD           65         JNB RI, MAIN_LOOP   ; Check flag RI = 1 (flag receive)
+003E E599             66         MOV A, SBUF
+0040 C298             67         CLR RI              ; Reset flag RI
+0042 B40A15           68         CJNE A, #0AH, NOT_NEWLINE ; neu khong phai '\n', xu ly tiep not newline
+                      69         ; Khi nh?n '\n'
+0045 E550             70         MOV A, index
+0047 7830             71         MOV R0, #BUFFER_ADDR
+0049 28               72         ADD A, R0
+004A F8               73         MOV R0, A
+004B 7600             74         MOV @R0, #0         ; Thêm ký tu null ('\0') vào cuoi buffer
+004D 7830             75         MOV R0, #BUFFER_ADDR
+004F 1119             76         ACALL UART_Sendstring ; Gui chuoi qua UART
+0051 1122             77         ACALL Process_command ; Xu lý lenh
+0053 755000           78         MOV index, #0       ; Reset index
+0056 1170             79         ACALL CLR_CPY
+0058 80E1             80         SJMP MAIN_LOOP
+005A                  81     NOT_NEWLINE:
+005A E550             82         MOV A, index
+005C B41F02           83         CJNE A, #BUFFER_SIZE-1, ADD_Char ; N?u buffer day, bo qua
+005F 80DA             84         SJMP MAIN_LOOP
+0061                  85     ADD_Char:
+0061 7830             86         MOV R0, #BUFFER_ADDR
+0063 E550             87         MOV A, index
+0065 28               88         ADD A, R0
+0066 F8               89         MOV R0, A
+0067 E599             90         MOV A, SBUF         ; Luu ky tu nhan duoc
+0069 F6               91         MOV @R0, A          ; Luu ký tu vào buffer[index]
+006A 0550             92         INC index           ; Tang index
+006C C298             93         CLR RI
+006E 80CB             94         SJMP MAIN_LOOP
+0070                  95     CLR_CPY:
+0070 7830             96         MOV R0, #BUFFER_ADDR
+0072 7920             97         MOV R1, #BUFFER_SIZE
+0074                  98     CLR_LOOP:
+0074 7600             99         MOV @R0, #0
+0076 08              100         INC R0
+0077 D9FB            101         DJNZ R1, CLR_LOOP
+0079 22              102         RET
+                     103     END
+A51 MACRO ASSEMBLER  MAIN_OFFICIAL                                                        05/15/2025 14:35:03 PAGE     3
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+ADD_CHAR . . . . .  C ADDR   0061H   A   
+BUFFER . . . . . .  D ADDR   0030H   A   
+BUFFER_ADDR. . . .  N NUMB   0030H   A   
+BUFFER_SIZE. . . .  N NUMB   0020H   A   
+CHECK_0. . . . . .  C ADDR   0036H   A   
+CLR_CPY. . . . . .  C ADDR   0070H   A   
+CLR_LOOP . . . . .  C ADDR   0074H   A   
+END_PROCESS. . . .  C ADDR   0038H   A   
+INDEX. . . . . . .  D ADDR   0050H   A   
+MAIN . . . . . . .  C ADDR   0039H   A   
+MAIN_LOOP. . . . .  C ADDR   003BH   A   
+NOT_NEWLINE. . . .  C ADDR   005AH   A   
+P2 . . . . . . . .  D ADDR   00A0H   A   
+PROCESS_COMMAND. .  C ADDR   0022H   A   
+RI . . . . . . . .  B ADDR   0098H.0 A   
+SBUF . . . . . . .  D ADDR   0099H   A   
+SCON . . . . . . .  D ADDR   0098H   A   
+SEND_END . . . . .  C ADDR   0021H   A   
+SEND_LOOP. . . . .  C ADDR   0019H   A   
+TH1. . . . . . . .  D ADDR   008DH   A   
+TI . . . . . . . .  B ADDR   0098H.1 A   
+TL1. . . . . . . .  D ADDR   008BH   A   
+TMOD . . . . . . .  D ADDR   0089H   A   
+TR1. . . . . . . .  B ADDR   0088H.6 A   
+UART_INIT. . . . .  C ADDR   0002H   A   
+UART_SENDCHAR. . .  C ADDR   0011H   A   
+UART_SENDSTRING. .  C ADDR   0019H   A   
+WAIT_TI. . . . . .  C ADDR   0013H   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
