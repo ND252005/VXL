@@ -187,8 +187,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\lcd_display_by_uart.a51</PathWithFileName>
-      <FilenameWithoutPath>lcd_display_by_uart.a51</FilenameWithoutPath>
+      <PathWithFileName>.\main_official.a51</PathWithFileName>
+      <FilenameWithoutPath>main_official.a51</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
